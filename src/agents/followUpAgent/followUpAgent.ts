@@ -1,6 +1,6 @@
 import client from "../../lib/groqClient.js";
 
-export const followUpAgent = async (bookingDetails: any, providerDetails: any) => {
+export const followUpAgent = async (bookingDetails: any, providerDetails: any, language: string = 'English') => {
     try {
         const systemPrompt = `
 You are a Follow-Up Automation Agent for a service booking platform.
@@ -36,6 +36,7 @@ OUTPUT FORMAT (STRICT JSON ONLY):
 RULES:
 - Use the actual provider name, location, and time from the context.
 - Keep messages short and friendly (WhatsApp style).
+- VERY IMPORTANT: Write the "message" field STRICTLY in: ${language}
 - Do not use markdown blocks, return pure JSON.
         `;
 

@@ -27,26 +27,38 @@ export const discoverProvidersTool = tool(
 
         // 3. Mathematical Karachi location clustering aligning with Firestore seed data
         const nearbyMap: Record<string, string[]> = {
-            "scheme 33": ["safoora", "gulzar-e-hijri", "gulshan-e-iqbal", "university road", "gulistan-e-johar"],
-            "safoora": ["scheme 33", "gulzar-e-hijri", "gulshan-e-iqbal", "university road"],
-            "gulzar-e-hijri": ["scheme 33", "safoora", "gulshan-e-iqbal", "university road"],
-            "gulshan-e-iqbal": ["scheme 33", "safoora", "gulzar-e-hijri", "university road", "hassan square", "gulistan-e-johar"],
-            "gulistan-e-johar": ["gulshan-e-iqbal", "scheme 33", "safoora", "university road", "karsaz", "shahrah-e-faisal"],
-            "university road": ["gulshan-e-iqbal", "hassan square", "scheme 33", "gulistan-e-johar"],
-            "hassan square": ["gulshan-e-iqbal", "university road", "bahadurabad", "karsaz"],
-            "bahadurabad": ["tariq road", "pechs", "hassan square", "karsaz"],
-            "tariq road": ["bahadurabad", "pechs", "shahrah-e-faisal"],
-            "pechs": ["tariq road", "bahadurabad", "shahrah-e-faisal", "karsaz"],
-            "shahrah-e-faisal": ["pechs", "tariq road", "karsaz", "gulistan-e-johar"],
-            "karsaz": ["shahrah-e-faisal", "pechs", "gulistan-e-johar", "hassan square", "bahadurabad"]
+            "scheme33": ["safoora", "gulzarehijri", "gulshaneiqbal", "universityroad", "gulistanejohar"],
+            "safoora": ["scheme33", "gulzarehijri", "gulshaneiqbal", "universityroad"],
+            "gulzarehijri": ["scheme33", "safoora", "gulshaneiqbal", "universityroad"],
+            "gulshaneiqbal": ["scheme33", "safoora", "gulzarehijri", "universityroad", "hassansquare", "gulistanejohar"],
+            "gulistanejohar": ["gulshaneiqbal", "scheme33", "safoora", "universityroad", "karsaz", "shahrahefaisal"],
+            "universityroad": ["gulshaneiqbal", "hassansquare", "scheme33", "gulistanejohar"],
+            "hassansquare": ["gulshaneiqbal", "universityroad", "bahadurabad", "karsaz"],
+            "bahadurabad": ["tariqroad", "pechs", "hassansquare", "karsaz"],
+            "tariqroad": ["bahadurabad", "pechs", "shahrahefaisal"],
+            "pechs": ["tariqroad", "bahadurabad", "shahrahefaisal", "karsaz"],
+            "shahrahefaisal": ["pechs", "tariqroad", "karsaz", "gulistanejohar"],
+            "karsaz": ["shahrahefaisal", "pechs", "gulistanejohar", "hassansquare", "bahadurabad"]
         };
 
-        const targetLoc = location.trim().toLowerCase();
-        const nearbyAreas = nearbyMap[targetLoc] || [];
-
+        const normalizeLoc = (loc: string) => loc.toLowerCase().replace(/[^a-z0-9]/g, '');
+        const targetLoc = normalizeLoc(location);
         const filtered = allProviders.filter((p: any) => {
-            const area = (p.location?.area || "").trim().toLowerCase();
-            return area === targetLoc || nearbyAreas.includes(area);
+            const area = normalizeLoc(p.location?.area || "");
+            
+            // 1. Direct or partial match
+            const isMatch = area.includes(targetLoc) || targetLoc.includes(area);
+            
+            // 2. Nearby match
+            const isNearby = Object.keys(nearbyMap).some(key => {
+                // If user typed "gulshan", it matches the key "gulshaneiqbal"
+                if (key.includes(targetLoc) || targetLoc.includes(key)) {
+                    return nearbyMap[key].includes(area) || key === area;
+                }
+                return false;
+            });
+
+            return isMatch || isNearby;
         });
 
         return JSON.stringify(filtered);

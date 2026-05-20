@@ -1,5 +1,4 @@
-import { Type } from "@google/genai";
-import { ai, GEMINI_MODELS } from "../../lib/gemini.js";
+import client from "../../lib/groqClient.js";
 import { discoverProvidersTool } from "../../tools/ProvidersByCategory.js";
 
 export const discoveryAgent = async (state: any) => {
@@ -25,41 +24,46 @@ CRITICAL RULES:
 
         const userPrompt = `Execute discovery for this intent: ${JSON.stringify(intent)}`;
 
-        // 2. Call Gemini model with tool support!
-        const response = await ai.models.generateContent({
-            model: GEMINI_MODELS.FLASH,
-            contents: userPrompt,
-            config: {
-                systemInstruction,
-                tools: [{
-                    functionDeclarations: [
-                        {
-                            name: "discover_providers",
-                            description: "Fetch and filter service providers from the database by service category and exact/nearby Karachi location clustering.",
-                            parameters: {
-                                type: Type.OBJECT,
-                                properties: {
-                                    serviceCategory: { type: Type.STRING, description: "The requested service or keyword (e.g. cleaner, plumber)." },
-                                    location: { type: Type.STRING, description: "The user's requested area (e.g. Gulshan-e-Iqbal)." }
-                                },
-                                required: ["serviceCategory", "location"]
-                            }
+        // 2. Call Groq model with tool support
+        const completion = await client.chat.completions.create({
+            model: "llama-3.3-70b-versatile",
+            temperature: 0.1,
+            messages: [
+                { role: "system", content: systemInstruction },
+                { role: "user", content: userPrompt }
+            ],
+            tools: [
+                {
+                    type: "function",
+                    function: {
+                        name: "discover_providers",
+                        description: "Fetch and filter service providers from the database by service category and exact/nearby Karachi location clustering.",
+                        parameters: {
+                            type: "object",
+                            properties: {
+                                serviceCategory: { type: "string", description: "The requested service or keyword (e.g. cleaner, plumber)." },
+                                location: { type: "string", description: "The user's requested area (e.g. Gulshan-e-Iqbal)." }
+                            },
+                            required: ["serviceCategory", "location"]
                         }
-                    ]
-                }]
-            }
+                    }
+                }
+            ],
+            tool_choice: "auto"
         });
 
         // 3. Handle tool calls or final output
         let finalProviders = [];
         let calledTool = false;
 
-        const candidateCalls = response.functionCalls || [];
+        const responseMessage = completion.choices[0]?.message;
+        const candidateCalls = responseMessage?.tool_calls || [];
+
         if (candidateCalls.length > 0) {
             const toolCall = candidateCalls[0];
-            if (toolCall.name === "discover_providers") {
-                const args: any = toolCall.args;
-                console.log(`[Gemini Discovery Agent] Calling tool discover_providers with args:`, args);
+            if (toolCall.function.name === "discover_providers") {
+                const args = JSON.parse(toolCall.function.arguments);
+                console.log(`[Groq Discovery Agent] Calling tool discover_providers with args:`, args);
                 
                 // Directly invoke the local tool in TypeScript
                 const resultStr = await discoverProvidersTool.invoke({
@@ -74,13 +78,13 @@ CRITICAL RULES:
 
         // If the model did not request a tool call or returned text directly
         if (!calledTool) {
-            const rawText = response.text || "[]";
+            const rawText = responseMessage?.content || "[]";
             try {
                 // Strip markdown blocks if present
                 const cleanText = rawText.replace(/```json/g, "").replace(/```/g, "").trim();
                 finalProviders = JSON.parse(cleanText);
             } catch (e) {
-                console.warn("[Gemini Discovery Agent] Failed to parse model's direct text. Running local query fallback...", e);
+                console.warn("[Groq Discovery Agent] Failed to parse model's direct text. Running local query fallback...", e);
                 // 100% Reliable Local Query Fallback!
                 const resultStr = await discoverProvidersTool.invoke({
                     serviceCategory: intent.service || "cleaning",
@@ -99,7 +103,7 @@ CRITICAL RULES:
             providers: finalProviders,
             logs: [
                 ...(state.logs || []),
-                { step: "Discovery Agent", message: "Successfully executed tool-calling Gemini loop" }
+                { step: "Discovery Agent", message: "Successfully executed tool-calling Groq loop" }
             ]
         };
 

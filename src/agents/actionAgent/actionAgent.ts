@@ -5,7 +5,16 @@ export const actionAgent = async (state: any) => {
         const { intent, selectedProvider } = state;
 
         if (!selectedProvider) {
-            throw new Error("Cannot simulate action: No provider selected.");
+            return {
+                ...state,
+                logs: [
+                    ...(state.logs || []),
+                    {
+                        step: "Action Agent",
+                        message: "Skipped booking: No provider available to book."
+                    }
+                ]
+            };
         }
 
         const systemPrompt = `

@@ -35,7 +35,7 @@ export const SplashScreen = ({ setCurrentScreen, isDarkMode }) => {
 
   return (
     <View style={styles.splashContainer}>
-      <Image source={require('../assets/Hazir_logoD.png')} style={styles.splashLogo} resizeMode="contain" />
+      <Image source={require('../../assets/Hazir_logoD.png')} style={styles.splashLogo} resizeMode="contain" />
       <Text style={styles.splashSubtitle}>Fikr chhoro, hum hain na!</Text>
       <View style={{ width: 250, marginBottom: 8, flexDirection: 'row', justifyContent: 'flex-end' }}>
         <Animated.Text style={{ color: barColor, fontWeight: 'bold', fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace' }}>

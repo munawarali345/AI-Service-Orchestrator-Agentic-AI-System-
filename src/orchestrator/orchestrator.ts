@@ -18,7 +18,7 @@ import { mergeIntentAgent } from "../agents/clarification/mergeAgent.js";
 import { followUpAgent } from "../agents/followUpAgent/followUpAgent.js";
 
 // This is the main orchestrator function
-export const runOrchestrator = async (userInput: string, conversationId = "default_session") => {
+export const runOrchestrator = async (userInput: string, conversationId = "default_session", userId = "user_mock_123") => {
 
     try {
         // 1. Log incoming request
@@ -111,6 +111,7 @@ export const runOrchestrator = async (userInput: string, conversationId = "defau
                     // -> Create Booking (Firestore)
                     t.set(bookingRef, {
                         bookingId: bookingRef.id,
+                        userId: userId, // Injecting actual user ID
                         conversationId: conversationId,
                         providerId: bookingData.providerId,
                         serviceType: bookingData.serviceType,
@@ -131,7 +132,7 @@ export const runOrchestrator = async (userInput: string, conversationId = "defau
                     // -> Trigger Notification (FCM push + Firestore log)
                     t.set(notifRef, {
                         id: notifRef.id,
-                        userId: "user_mock_123", // Using mock user ID as auth is not fully hooked up
+                        userId: userId, // Injecting actual authenticated user ID from frontend
                         bookingId: bookingRef.id,
                         type: "booking_confirmed",
                         message: resultState.booking.confirmation?.message || "Your booking is confirmed.",
@@ -156,7 +157,7 @@ export const runOrchestrator = async (userInput: string, conversationId = "defau
                 // ---------------------------------------------------------
                 try {
                     logger.info(" Generating Follow-Up lifecycle plan...");
-                    const followUpPlan = await followUpAgent(resultState.booking.booking, resultState.selectedProvider);
+                    const followUpPlan = await followUpAgent(resultState.booking.booking, resultState.selectedProvider, resultState.intent?.language || 'English');
 
                     // Save to state for frontend
                     resultState.followUp = followUpPlan;
@@ -168,7 +169,7 @@ export const runOrchestrator = async (userInput: string, conversationId = "defau
                         const planRef = db.collection("notifications").doc();
                         batch.set(planRef, {
                             id: planRef.id,
-                            userId: "user_mock_123",
+                            userId: userId,
                             bookingId: bookingRef.id,
                             type: plan.type,
                             triggerTime: plan.triggerTime,
@@ -226,6 +227,8 @@ export const runOrchestrator = async (userInput: string, conversationId = "defau
             pricing: resultState.pricing || null,
             booking: resultState.booking || null,
             followUp: resultState.followUp || [],
+            providers: resultState.providers || [],
+            recommendation: resultState.recommendation || null,
             trace: resultState.logs || []
         };
 

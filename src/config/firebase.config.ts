@@ -26,6 +26,10 @@ if (!admin.apps.length) {
             privateKey,
         }),
     });
+    // Configure Firestore settings to ignore undefined values
+    admin.firestore().settings({
+        ignoreUndefinedProperties: true
+    });
 }
 
 // Export the initialized admin instance so other parts of the app can use it

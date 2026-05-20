@@ -21,7 +21,7 @@ export const AuthChoiceScreen = ({
         <Switch value={isDarkMode} onValueChange={setIsDarkMode} />
       </View>
       <View style={styles.authBrandContainer}>
-        <Image source={require('../assets/Hazir_logoD.png')} style={styles.authLogo} resizeMode="contain" />
+        <Image source={require('../../assets/Hazir_logoD.png')} style={styles.authLogo} resizeMode="contain" />
         <Text style={styles.authWelcome}>Haazir AI</Text>
         <Text style={styles.splashSubtitleAuth}>Fikr chhoro, hum hain na!</Text>
       </View>

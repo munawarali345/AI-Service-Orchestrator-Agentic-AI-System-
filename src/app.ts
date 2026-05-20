@@ -8,6 +8,13 @@ import helmet from "helmet";
 // Import route
 import orchestratorRoutes from "./routes/orchestrator.routes.js";
 import supportRoutes from "./routes/support.routes.js";
+import providerRoutes from "./providers/provider.routes.js";
+import providerDetailRoutes from "./providerDetails/providerDetail.routes.js";
+import bookingRoutes from "./booking/booking.routes.js";
+import followupRoutes from "./followup/followup.routes.js";
+import traceRoutes from "./trace/trace.routes.js";
+import disputeRoutes from "./dispute/dispute.routes.js";
+import comparisonRoutes from "./comparison/comparison.routes.js";
 
 // Initialize the Express application instance
 const app = express();
@@ -38,6 +45,13 @@ app.get("/health", (req, res) => {
 // Base route
 app.use("/api/orchestrator", orchestratorRoutes);
 app.use("/api/support", supportRoutes);
+app.use("/api/providers", providerRoutes);
+app.use("/api/provider-details", providerDetailRoutes);
+app.use("/api/booking", bookingRoutes);
+app.use("/api/followup", followupRoutes);
+app.use("/api/trace", traceRoutes);
+app.use("/api/dispute", disputeRoutes);
+app.use("/api/comparison", comparisonRoutes);
 
 // Export the configured Express app so it can be imported and started in server.ts
 export default app;

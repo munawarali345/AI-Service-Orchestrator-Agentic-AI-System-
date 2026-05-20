@@ -28,28 +28,19 @@ SUPPORTED LANGUAGES:
 
 YOUR TASK:
 Extract exactly these fields from the user input:
-1. service: The category of service requested (e.g. "cleaning", "plumbing", "electrician").
-2. location: The localized area requested (e.g. "Gulshan-e-Iqbal", "Scheme 33").
-3. targetDate: The requested date relative to today. Choose exactly one of these allowed values:
-   - "today" (for aj, aaj, today, now, abhi)
-   - "tomorrow" (for kal, tomorrow)
-   - "+2 days" (for parso, day after tomorrow)
-   - "next day" (for next day)
-   - If not mentioned at all, default to "tomorrow".
-4. targetTimeWindow: The preferred time window of the day. Choose exactly one of these allowed values:
-   - "morning" (for subha, subah, morning, early morning, fajar)
-   - "noon" (for dopahar, dupehar, noon, afternoon)
-   - "evening" (for sham, shaam, evening, asir, maghrib)
-   - "night" (for raat, night, late night, isha)
-   - "urgent" (for abhi, ab, right now, asap)
-   - If not mentioned at all, default to "morning".
+1. service: The category of service requested (e.g. "cleaning", "plumbing", "electrician"). Return null if missing.
+2. location: The localized area requested (e.g. "Gulshan-e-Iqbal", "Scheme 33"). Return null if missing.
+3. targetDate: The requested date relative to today ("today", "tomorrow", "+2 days", "next day"). Return null if missing.
+4. targetTimeWindow: The preferred time window of the day ("morning", "noon", "evening", "night", "urgent"). Return null if missing.
+5. language: The language used by the user ("English", "Urdu Script", "Roman Urdu").
 
 IMPORTANT RULES:
-- Never guess unclear information.
-- If user input is confusing, incomplete, mixed badly, or completely ambiguous:
+- NEVER guess missing information.
+- NEVER provide default values for missing information.
+- If ANY of the 4 core fields (service, location, targetDate, targetTimeWindow) are missing or unclear:
   - set isClear = false
-  - generate a short clarification question.
-- If input is understandable:
+  - generate a polite clarification question IN THE EXACT SAME LANGUAGE (detected language) asking for the specific missing details.
+- If ALL 4 fields are clearly understood:
   - set isClear = true
   - clarificationQuestion must be null.
 
@@ -64,34 +55,23 @@ Output:
   "location": "G-13",
   "targetDate": "tomorrow",
   "targetTimeWindow": "morning",
+  "language": "Roman Urdu",
   "isClear": true,
   "clarificationQuestion": null
 }
 
 Input:
-"Mujhe plmbr chye DHA"
+"Mujhe subah ek electrician ki zaroorat hai."
 
 Output:
 {
-  "service": "Plumber",
-  "location": "DHA",
-  "targetDate": "tomorrow",
+  "service": "electrician",
+  "location": null,
+  "targetDate": "today",
   "targetTimeWindow": "morning",
+  "language": "Roman Urdu",
   "isClear": false,
-  "clarificationQuestion": "What time of the day do you prefer for the plumber service?"
-}
-
-Input:
-"kal wala kaam wahi"
-
-Output:
-{
-  "service": "",
-  "location": "",
-  "targetDate": "",
-  "targetTimeWindow": "",
-  "isClear": false,
-  "clarificationQuestion": "Can you please specify which service you need and the location?"
+  "clarificationQuestion": "Theek hai, main electrician bhej deta hoon. Lakin kis area/location mein bhejna hai? Aur kis din (aaj ya kal)?"
 }
 
 Return ONLY a JSON object.
@@ -143,6 +123,7 @@ user request:
                 location: result.location,
                 targetDate: result.targetDate,
                 targetTimeWindow: result.targetTimeWindow,
+                language: result.language || 'English',
                 date: result.targetDate, // Backward-compatibility
                 time: result.targetTimeWindow // Backward-compatibility
             },
@@ -153,6 +134,7 @@ user request:
                 location: result.location,
                 targetDate: result.targetDate,
                 targetTimeWindow: result.targetTimeWindow,
+                language: result.language || 'English',
                 date: result.targetDate,
                 time: result.targetTimeWindow
             } : null,

@@ -23,6 +23,7 @@ export const runRebookingAgent = async (bookingId: string, cancelReason: string)
         // We will intelligently use the "alternativeSlots" already saved in the LangGraph state!
         let newProvider: any = null;
         let newSlotId: string | null = null;
+        let language: string = 'English';
 
         if (booking.conversationId) {
             const previousState = await getConversationState(booking.conversationId);
@@ -31,6 +32,9 @@ export const runRebookingAgent = async (bookingId: string, cancelReason: string)
                 newProvider = previousState.recommendation.alternatives[0];
                 newSlotId = newProvider.matchedSlot?.slotId || null;
                 logger.info(`♻️ Found backup provider ${newProvider.name} from LangGraph state memory!`);
+            }
+            if (previousState?.intent?.language) {
+                language = previousState.intent.language;
             }
         }
 
@@ -62,6 +66,8 @@ export const runRebookingAgent = async (bookingId: string, cancelReason: string)
 You are the Rebooking & Rescue Agent for Haazir.
 A provider just cancelled an existing booking, but you have found an alternative provider!
 Generate a short, polite, empathetic WhatsApp-style message informing the user about the switch.
+
+VERY IMPORTANT: You MUST write the "rebookingMessage" field strictly in: ${language}
 
 OUTPUT FORMAT (Strict JSON):
 {
@@ -112,7 +118,7 @@ New Provider Assigned: ${newProvider.name} (Rating: ${newProvider.rating})
             const notifRef = db.collection("notifications").doc();
             t.set(notifRef, {
                 id: notifRef.id,
-                userId: "user_mock_123",
+                userId: booking.userId || "user_mock_123",
                 bookingId: bookingId,
                 type: "provider_rebooked",
                 message: result.rebookingMessage,

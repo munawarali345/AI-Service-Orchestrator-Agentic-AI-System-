@@ -32,7 +32,7 @@ export const ProviderListScreen = ({
           <Ionicons name="arrow-back-outline" size={24} color={isDarkMode ? '#F8FAFC' : '#0F172A'} />
           <Text style={{ color: isDarkMode ? '#F8FAFC' : '#0F172A', fontWeight: 'bold', fontSize: 16 }}>Back</Text>
         </TouchableOpacity>
-        <Image source={require('../assets/Hazir_logoD.png')} style={[styles.headerLogo, { width: 90 }]} />
+        <Image source={require('../../assets/Hazir_logoD.png')} style={[styles.headerLogo, { width: 90 }]} />
         <View style={styles.headerControls}>
           <TouchableOpacity onPress={() => { runBaselineComparison(); setCurrentScreen('baseline_compare'); }} style={{
             backgroundColor: 'rgba(6, 182, 212, 0.1)',
@@ -90,7 +90,7 @@ export const ProviderListScreen = ({
 
               <View style={{ backgroundColor: isDarkMode ? 'rgba(16, 185, 129, 0.08)' : '#ECFDF5', padding: 10, borderRadius: 6, marginTop: 8 }}>
                 <Text style={{ color: '#10B981', fontSize: 13, fontStyle: 'italic', lineHeight: 18 }}>
-                  💬 Selection reasoning: Geodesic coordinate clustering shows this provider is closest to your location (approx 4.2 km) with an active availability slot matching tomorrow morning!
+                  💬 {response?.recommendation?.recommendedProvider?.reason || response?.recommendation?.userMessage || `Geodesic coordinate clustering shows this provider is closest to your location (${bestMatch.distance || 'approx 4.2 km'}) with an active availability slot matching your request!`}
                 </Text>
               </View>
 

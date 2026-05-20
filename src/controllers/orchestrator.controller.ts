@@ -13,7 +13,7 @@ export const handleUserRequest = async (req: Request, res: Response) => {
 
         // 1. Extract user input from request body
         // Example: "Mujhe kal AC technician chahiye G-13 mein"
-        const { input } = req.body;
+        const { input, userId } = req.body;
 
         // 2. Basic validation (must have input)
         if (!input) {
@@ -28,7 +28,7 @@ export const handleUserRequest = async (req: Request, res: Response) => {
 
         // 4. Pass input to orchestrator
         // ORCHESTRATOR will handle LangGraph workflow
-        const result = await runOrchestrator(input);
+        const result = await runOrchestrator(input, userId || "default_session", userId || "user_mock_123");
 
         // 5. Return final structured response from orchestrator
         return res.status(200).json({

@@ -7,7 +7,7 @@ import {
   signOut
 } from 'firebase/auth';
 
-const BACKEND_BASE_URL = 'http://192.168.10.7:8000'; // Make this changeable depending on the user's active IP
+const BACKEND_BASE_URL = 'http://192.168.100.6:5000'; // Make this changeable depending on the user's active IP
 
 export const apiService = {
   // 1. Authenticate user
@@ -26,9 +26,15 @@ export const apiService = {
       };
     } catch (error) {
       console.error('[API Service] Firebase Login error:', error.message);
+      
       let friendlyMessage = error.message;
-      if (error.code === 'auth/invalid-credential') friendlyMessage = 'Incorrect email or password.';
-      else if (error.code === 'auth/invalid-email') friendlyMessage = 'Please enter a valid email address.';
+      if (error.message.includes('API key not valid') || error.code === 'auth/invalid-api-key') {
+        friendlyMessage = "Firebase API Key is fake or missing! Please open 'mobile/expo_client/src/config/firebase.js' and replace 'AIzaSyFakeKey...' with your real Firebase Web API Key.";
+      } else if (error.code === 'auth/invalid-credential') {
+        friendlyMessage = 'Incorrect email or password.';
+      } else if (error.code === 'auth/invalid-email') {
+        friendlyMessage = 'Please enter a valid email address.';
+      }
       throw new Error(friendlyMessage);
     }
   },
@@ -53,22 +59,28 @@ export const apiService = {
       };
     } catch (error) {
       console.error('[API Service] Firebase Register error:', error.message);
+
       let friendlyMessage = error.message;
-      if (error.code === 'auth/email-already-in-use') friendlyMessage = 'This email address is already registered.';
+      if (error.message.includes('API key not valid') || error.code === 'auth/invalid-api-key') {
+        friendlyMessage = "Firebase API Key is fake or missing! Please open 'mobile/expo_client/src/config/firebase.js' and replace 'AIzaSyFakeKey...' with your real Firebase Web API Key.";
+      } else if (error.code === 'auth/email-already-in-use') {
+        friendlyMessage = 'This email address is already registered.';
+      }
       throw new Error(friendlyMessage);
     }
   },
 
   // 4. Run AI Orchestrator workflow
-  orchestrateRequest: async (query, userLocation = 'Gulshan-e-Iqbal') => {
+  orchestrateRequest: async (query, userLocation = 'Gulshan-e-Iqbal', userId = null) => {
     try {
-      console.log(`[API Service] Sending query to backend: "${query}" at location: "${userLocation}"`);
+      console.log(`[API Service] Sending query to backend: "${query}" at location: "${userLocation}" for user: "${userId}"`);
       
       const res = await fetch(`${BACKEND_BASE_URL}/api/orchestrator/request`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           input: query,
+          userId: userId
         }),
       });
 
@@ -98,14 +110,14 @@ export const apiService = {
         status: 'success',
         bookingId: state.booking?.bookingId || state.bookingId || 'live_booking_' + Math.random().toString(36).substring(7),
         intent: {
-          service: state.intent?.service || 'cleaning',
-          location: state.intent?.location || userLocation,
-          targetDate: state.intent?.date || 'tomorrow',
+          service: state.serviceType || state.intent?.service || 'cleaning',
+          location: state.location || state.intent?.location || userLocation,
+          targetDate: state.time || state.intent?.date || 'tomorrow',
           targetTimeWindow: state.intent?.timeSlot || 'morning'
         },
         selectedProvider: state.selectedProvider ? {
           id: state.selectedProvider.id || 'provider_cd042c72-7d11-4cbf-806e-dcdf6464d678',
-          name: state.selectedProvider.name || "Ali Khan's Services",
+          name: state.selectedProvider.name || `${state.selectedProvider.ownerName}'s Services`,
           phone: state.selectedProvider.phone || '+92 314 8181802',
           rating: state.selectedProvider.rating || 4.8,
           reliabilityScore: state.selectedProvider.reliabilityScore || 95,
@@ -120,43 +132,75 @@ export const apiService = {
           priceRange: { min: 1500, max: 5000, currency: 'PKR' },
           location: { area: userLocation }
         },
-        providers: (state.recommendation?.alternatives || []).length > 0
-          ? state.recommendation.alternatives.map(p => ({
-              id: p.id || Math.random().toString(),
-              name: p.name,
-              rating: p.rating || 4.5,
-              reliabilityScore: p.reliabilityScore || 90,
-              priceRange: p.priceRange || { min: 1000, max: 3000, currency: 'PKR' },
-              location: p.location || { area: userLocation },
-              distance: p.distance || '2.5 km away'
-            }))
-          : [
-              {
-                id: 'provider_18c0168f-4726-454e-b08d-828005038b5f',
-                name: "Ahmed Shah's Services",
-                rating: 4.57,
-                reliabilityScore: 95,
-                priceRange: { min: 1000, max: 4000, currency: 'PKR' },
-                location: { area: 'Scheme 33' },
-                distance: '11.6 km away'
-              },
-              {
-                id: 'provider_3f3447ae-0559-48c1-a6d5-8138046d47b5',
-                name: "Usman Shah's Services",
-                rating: 3.95,
-                reliabilityScore: 80,
-                priceRange: { min: 1000, max: 4000, currency: 'PKR' },
-                location: { area: 'University Road' },
-                distance: '1.1 km away'
-              }
-            ],
-        logs: state.logs || [
+        providers: (() => {
+          let mappedProviders = [];
+          
+          if (state.recommendation && (state.recommendation.recommendedProvider || state.recommendation.alternatives?.length > 0)) {
+            const list = [];
+            if (state.recommendation.recommendedProvider) list.push(state.recommendation.recommendedProvider);
+            if (state.recommendation.alternatives) list.push(...state.recommendation.alternatives);
+            
+            mappedProviders = list.map(rec => {
+              const fullP = (state.providers || []).find(p => (p.provider?.id === rec.id) || (p.id === rec.id));
+              const pData = fullP?.provider || fullP || {};
+              
+              return {
+                id: rec.id || pData.id || Math.random().toString(),
+                name: rec.name || pData.name || (pData.ownerName ? `${pData.ownerName}'s Services` : 'Unknown Services'),
+                rating: rec.rating || pData.rating || 4.5,
+                reliabilityScore: pData.reliabilityScore || 90,
+                priceRange: pData.priceRange || { min: 1000, max: 3000, currency: 'PKR' },
+                location: { area: rec.area || pData.location?.area || userLocation },
+                distance: rec.distance || rec.computedDistance || pData.computedDistance || (pData.distance ? `${pData.distance} km` : '2.5 km'),
+                reason: rec.reason
+              };
+            });
+          } else if (state.providers && state.providers.length > 0) {
+            mappedProviders = state.providers.map(p => {
+              const pData = p.provider || p;
+              return {
+                id: pData.id || Math.random().toString(),
+                name: pData.name || (pData.ownerName ? `${pData.ownerName}'s Services` : 'Unknown Services'),
+                rating: pData.rating || 4.5,
+                reliabilityScore: pData.reliabilityScore || 90,
+                priceRange: pData.priceRange || { min: 1000, max: 3000, currency: 'PKR' },
+                location: pData.location || { area: userLocation },
+                distance: p.computedDistance !== "unknown" ? `${p.computedDistance} km` : (pData.distance ? `${pData.distance} km` : '2.5 km')
+              };
+            });
+          }
+
+          if (mappedProviders.length === 0) {
+             return [
+                {
+                  id: 'provider_18c0168f-4726-454e-b08d-828005038b5f',
+                  name: "Ahmed Shah's Services",
+                  rating: 4.57,
+                  reliabilityScore: 95,
+                  priceRange: { min: 1000, max: 4000, currency: 'PKR' },
+                  location: { area: 'Scheme 33' },
+                  distance: '11.6 km'
+                },
+                {
+                  id: 'provider_3f3447ae-0559-48c1-a6d5-8138046d47b5',
+                  name: "Usman Shah's Services",
+                  rating: 3.95,
+                  reliabilityScore: 80,
+                  priceRange: { min: 1000, max: 4000, currency: 'PKR' },
+                  location: { area: 'University Road' },
+                  distance: '1.1 km'
+                }
+             ];
+          }
+          return mappedProviders;
+        })(),
+        logs: state.trace || [
           { step: 'Discovery Agent', message: `Discovered 10 matching providers near ${userLocation}.` },
           { step: 'Ranking Agent', message: `Evaluated providers using 9 factors. Best Match found.` },
           { step: 'Recommendation Agent', message: `Formulated primary selection details and verified availability.` }
         ],
-        agent_trace: state.logs 
-          ? state.logs.map(l => ({
+        agent_trace: state.trace 
+          ? state.trace.map(l => ({
               agent: l.step || 'Agent Node',
               thought: l.message,
               action: 'Executed step successfully.'
@@ -167,8 +211,8 @@ export const apiService = {
               { agent: 'Ranking Agent', thought: `Calculating scores using 9 factors.`, action: `Ranked Ali Khan as best match.` }
             ],
         data: {
-          client_confirmation_sms: state.booking?.confirmation?.message || `Aapka booking confirm ho gaya hai! Provider: Ali Khan. Time slot: Tomorrow Morning. Total Bill: PKR 2,800. Shukriya!`,
-          dynamic_receipt: state.booking?.booking?.pricing || {
+          client_confirmation_sms: state.booking?.confirmation?.message || `Aapka booking confirm ho gaya hai! Provider: ${state.selectedProvider?.name || 'Ali Khan'}. Total Bill: PKR ${state.pricing?.grand_total || '2,800'}. Shukriya!`,
+          dynamic_receipt: state.pricing || {
             base_fee: 1500,
             distance_fee: 450,
             urgency_surge: 1000,
@@ -177,8 +221,8 @@ export const apiService = {
           },
           follow_up_schedule: state.followUp && state.followUp.length > 0
             ? state.followUp.map((f, index) => ({
-                state: f.type || `Phase ${index + 1}`,
-                timestamp: new Date(Date.now() + index * 10000).toISOString(),
+                state: f.type || f.status || `Phase ${index + 1}`,
+                timestamp: f.triggerTime || new Date(Date.now() + index * 10000).toISOString(),
                 message: f.message
               }))
             : [
@@ -375,6 +419,85 @@ export const apiService = {
           responseMessage: msg
         }
       };
+    }
+  },
+
+  // --- Feature Modular Specific Endpoint Fetches ---
+  getProvidersList: async (serviceCategory, location) => {
+    try {
+      const res = await fetch(`${BACKEND_BASE_URL}/api/providers/list`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ serviceCategory, location })
+      });
+      return await res.json();
+    } catch (e) {
+      console.warn('[API Service] getProvidersList failed', e.message);
+      return { success: false, data: [] };
+    }
+  },
+
+  getProviderDetails: async (providerId) => {
+    try {
+      const res = await fetch(`${BACKEND_BASE_URL}/api/provider-details/${providerId}`);
+      return await res.json();
+    } catch (e) {
+      console.warn('[API Service] getProviderDetails failed', e.message);
+      return { success: false, data: null };
+    }
+  },
+
+  getBookingDetails: async (bookingId) => {
+    try {
+      const res = await fetch(`${BACKEND_BASE_URL}/api/booking/${bookingId}`);
+      return await res.json();
+    } catch (e) {
+      console.warn('[API Service] getBookingDetails failed', e.message);
+      return { success: false, data: null };
+    }
+  },
+
+  getFollowUpTimeline: async (bookingId) => {
+    try {
+      const res = await fetch(`${BACKEND_BASE_URL}/api/followup/${bookingId}`);
+      return await res.json();
+    } catch (e) {
+      console.warn('[API Service] getFollowUpTimeline failed', e.message);
+      return { success: false, data: [] };
+    }
+  },
+
+  getAgentTraceLogs: async (conversationId) => {
+    try {
+      const res = await fetch(`${BACKEND_BASE_URL}/api/trace/${conversationId || 'default_session'}`);
+      return await res.json();
+    } catch (e) {
+      console.warn('[API Service] getAgentTraceLogs failed', e.message);
+      return { success: false, data: [] };
+    }
+  },
+
+  getDisputeHistory: async (bookingId) => {
+    try {
+      const res = await fetch(`${BACKEND_BASE_URL}/api/dispute/history/${bookingId}`);
+      return await res.json();
+    } catch (e) {
+      console.warn('[API Service] getDisputeHistory failed', e.message);
+      return { success: false, data: [] };
+    }
+  },
+
+  getBaselineComparison: async (serviceCategory, location, grandTotal) => {
+    try {
+      const res = await fetch(`${BACKEND_BASE_URL}/api/comparison`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ serviceCategory, location, grandTotal })
+      });
+      return await res.json();
+    } catch (e) {
+      console.warn('[API Service] getBaselineComparison failed', e.message);
+      return { success: false, data: null };
     }
   }
 };

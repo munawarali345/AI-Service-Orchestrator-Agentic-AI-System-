@@ -146,7 +146,7 @@ export const HomeScreen = ({
     <View style={{ flex: 1 }}>
       {/* Dynamic Header */}
       <View style={styles.header}>
-        <Image source={require('../assets/Hazir_logoD.png')} style={styles.headerLogo} />
+        <Image source={require('../../assets/Hazir_logoD.png')} style={styles.headerLogo} />
         <View style={styles.headerControls}>
           <View style={styles.switchRow}>
             <Text style={styles.switchLabel}>Dev</Text>
@@ -240,16 +240,6 @@ export const HomeScreen = ({
               multiline={true}
               numberOfLines={3}
             />
-            <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center', marginBottom: 12 }}>
-              <Ionicons name="location-outline" size={18} color="#06B6D4" />
-              <TextInput
-                style={[styles.input, { paddingVertical: 8 }]}
-                placeholder="Your Location..."
-                placeholderTextColor="#64748B"
-                value={userLocation}
-                onChangeText={setUserLocation}
-              />
-            </View>
             <TouchableOpacity style={styles.primaryBtn} onPress={handleExecute} disabled={loading}>
               <Text style={styles.primaryBtnText}>FIND BEST MATCHING PROVIDERS</Text>
             </TouchableOpacity>
@@ -288,7 +278,7 @@ export const HomeScreen = ({
               shadowOpacity: 1,
               shadowRadius: 4,
             }} />
-            <Text style={{ color: '#FFFFFF', fontSize: 16, fontWeight: 'bold', letterSpacing: 1.2 }}>Karachi (Gulshan Cluster)</Text>
+            <Text style={{ color: '#FFFFFF', fontSize: 16, fontWeight: 'bold', letterSpacing: 1.2 }}>Karachi</Text>
           </View>
         </View>
 
@@ -298,7 +288,7 @@ export const HomeScreen = ({
             ⚡ Available On-Demand Services
           </Text>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
-            {['Plumber', 'AC Technician', 'Home Cleaning', 'Electrician', 'Appliance Repair', 'Tutor'].map((cat, i) => (
+            {['Cleaning', 'Plumbing', 'Electrician', 'Beautician', 'Decoration'].map((cat, i) => (
               <TouchableOpacity key={i} onPress={() => setQuery(`Mujhe subah ek ${cat.toLowerCase()} ki zaroorat hai.`)} style={{
                 backgroundColor: isDarkMode ? '#1E293B' : '#E2E8F0',
                 borderRadius: 20,

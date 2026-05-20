@@ -1,6 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { apiService } from '../services/api';
 import { Alert } from 'react-native';
+import { auth, db } from '../config/firebase';
+import { onAuthStateChanged, signOut } from 'firebase/auth';
+import { collection, query as firestoreQuery, where, onSnapshot } from 'firebase/firestore';
 
 export const useOrchestrator = () => {
   // Navigation & Screen control
@@ -45,6 +48,58 @@ export const useOrchestrator = () => {
   const [missingFields, setMissingFields] = useState([]);
   const [clarificationAnswer, setClarificationAnswer] = useState('');
 
+  // Firebase Auth State Listener
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      if (firebaseUser) {
+        if (firebaseUser.emailVerified) {
+          setUser({
+            uid: firebaseUser.uid,
+            email: firebaseUser.email,
+            name: firebaseUser.email.split('@')[0],
+            emailVerified: firebaseUser.emailVerified
+          });
+          // Redirect to home if they are on an authentication screen
+          setCurrentScreen(current => (current === 'splash' || current === 'auth_choice' || current === 'signup_user') ? 'home' : current);
+        } else {
+          // We DO NOT call signOut(auth) here because it races with sendEmailVerification during signup!
+          setUser(null);
+          setCurrentScreen(current => current === 'splash' ? 'auth_choice' : current);
+        }
+      } else {
+        setUser(null);
+        setCurrentScreen(current => current === 'splash' ? 'auth_choice' : current);
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  // Notifications Listener (FCM alternative for React Native Web / simple Expo)
+  useEffect(() => {
+    let unsubscribeNotifs = null;
+    if (user && user.uid && !user.uid.includes('sandbox')) {
+      const q = firestoreQuery(collection(db, 'notifications'), where('userId', '==', user.uid));
+      unsubscribeNotifs = onSnapshot(q, (snapshot) => {
+        snapshot.docChanges().forEach((change) => {
+          if (change.type === 'added') {
+            const notif = change.doc.data();
+            // Display alert only for new notifications (last 10 seconds) to avoid spamming old history
+            const isRecent = notif.createdAt && (Date.now() - notif.createdAt.toMillis() < 10000);
+            if (isRecent || !notif.createdAt) {
+               alert(`🔔 Haazir Update:\n\n${notif.message}`);
+            }
+          }
+        });
+      }, (error) => {
+         console.warn("Notification listener error:", error);
+      });
+    }
+    return () => {
+      if (unsubscribeNotifs) unsubscribeNotifs();
+    };
+  }, [user]);
+
   // 1. Auth Handlers
   const handleLogin = async (email, password) => {
     if (!email || !password) {
@@ -59,6 +114,7 @@ export const useOrchestrator = () => {
       // Enforce email verification constraint
       if (!userData.emailVerified) {
         setAuthError('Email verification pending! Please check your inbox and verify your account first.');
+        signOut(auth);
         return;
       }
       
@@ -76,11 +132,11 @@ export const useOrchestrator = () => {
     setAuthLoading(true);
     try {
       await apiService.registerUser(userData);
-      Alert.alert(
-        'Verification Email Sent',
-        'Account created successfully! Please click the verification link in your email inbox to verify your account, then log in.',
-        [{ text: 'OK', onPress: () => setCurrentScreen('auth_choice') }]
-      );
+      
+      // Use standard alert to ensure it shows up reliably across all Expo platforms (Web/iOS/Android)
+      alert('Verification Email Sent!\n\nAccount created successfully! Please click the verification link in your email inbox to verify your account, then log in.');
+      
+      setCurrentScreen('auth_choice');
     } catch (e) {
       setAuthError(e.message);
     } finally {
@@ -88,7 +144,12 @@ export const useOrchestrator = () => {
     }
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+    } catch (e) {
+      console.warn("SignOut Error", e);
+    }
     setUser(null);
     setQuery('');
     setResponse(null);
@@ -131,7 +192,7 @@ export const useOrchestrator = () => {
     }, 1200);
 
     try {
-      const result = await apiService.orchestrateRequest(query, userLocation);
+      const result = await apiService.orchestrateRequest(query, userLocation, user?.uid || null);
       clearInterval(intervalId);
       
       if (result.status === 'clarification_needed') {

@@ -16,6 +16,6 @@ export const ai = new GoogleGenAI({
 });
 
 export const GEMINI_MODELS = {
-    FLASH: "gemini-2.5-flash",
-    PRO: "gemini-2.5-flash", // Switching PRO to flash-2.5 as well to resolve quota issues reported by user
+    FLASH: "gemini-2.0-flash",
+    PRO: "gemini-2.0-flash", // Switching PRO to flash-2.0 as well to resolve quota issues reported by user
 };

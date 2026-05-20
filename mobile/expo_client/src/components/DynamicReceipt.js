@@ -9,7 +9,7 @@ export const DynamicReceipt = ({ receipt, isDarkMode }) => {
   return (
     <View style={styles.card}>
       <View style={styles.receiptHeader}>
-        <Image source={require('../assets/Hazir_logoD.png')} style={styles.receiptLogo} resizeMode="contain" />
+        <Image source={require('../../assets/Hazir_logoD.png')} style={styles.receiptLogo} resizeMode="contain" />
         <Text style={[styles.cardHeader, { marginBottom: 0 }]}>Dynamic Proximity Receipt</Text>
       </View>
       

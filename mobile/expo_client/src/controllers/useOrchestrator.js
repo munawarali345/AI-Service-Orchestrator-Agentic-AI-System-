@@ -39,6 +39,12 @@ export const useOrchestrator = () => {
   const [baselineData, setBaselineData] = useState(null);
   const [comparisonActive, setComparisonActive] = useState(false);
 
+  // Clarification state
+  const [clarificationNeeded, setClarificationNeeded] = useState(false);
+  const [clarificationMessage, setClarificationMessage] = useState('');
+  const [missingFields, setMissingFields] = useState([]);
+  const [clarificationAnswer, setClarificationAnswer] = useState('');
+
   // 1. Auth Handlers
   const handleLogin = async (email, password) => {
     if (!email || !password) {
@@ -100,6 +106,9 @@ export const useOrchestrator = () => {
     setErrorMsg(null);
     setSelectedDetail(null);
     setBaselineData(null);
+    setClarificationNeeded(false);
+    setClarificationMessage('');
+    setMissingFields([]);
     setLoadingPhase('Intent Parsing...');
 
     // Dynamic phase update timer
@@ -124,13 +133,81 @@ export const useOrchestrator = () => {
     try {
       const result = await apiService.orchestrateRequest(query, userLocation);
       clearInterval(intervalId);
-      setResponse(result);
-      // Navigate to Provider List
-      setCurrentScreen('provider_list');
+      
+      if (result.status === 'clarification_needed') {
+        console.log('[useOrchestrator] Clarification needed parsed from backend!');
+        setClarificationNeeded(true);
+        setClarificationMessage(result.message);
+        setMissingFields(result.missingFields || []);
+      } else {
+        setResponse(result);
+        setClarificationNeeded(false);
+        setClarificationMessage('');
+        setMissingFields([]);
+        // Navigate to Provider List
+        setCurrentScreen('provider_list');
+      }
     } catch (e) {
       clearInterval(intervalId);
       console.error(e);
       setErrorMsg(e.message || 'Error occurred while contacting the orchestrator.');
+    } finally {
+      setLoading(false);
+      setLoadingPhase('');
+    }
+  };
+
+  // 2.5. Submit Clarification & Resume flow
+  const handleSubmitClarification = async () => {
+    if (!clarificationAnswer.trim()) return;
+    setLoading(true);
+    setResponse(null);
+    setErrorMsg(null);
+    setLoadingPhase('Intent Parsing...');
+
+    // Clarification loading phase sequence:
+    // Intent Parsing... ➔ Clarification Required... ➔ Resuming Search... ➔ Finding Providers... ➔ Ranking... ➔ Completed
+    let phaseIndex = 0;
+    const phases = [
+      'Intent Parsing...',
+      'Clarification Required...',
+      'Resuming Search...',
+      'Finding Providers...',
+      'Ranking...',
+      'Completed'
+    ];
+
+    const intervalId = setInterval(() => {
+      phaseIndex++;
+      if (phaseIndex < phases.length) {
+        setLoadingPhase(phases[phaseIndex]);
+      } else {
+        clearInterval(intervalId);
+      }
+    }, 1200);
+
+    try {
+      console.log(`[useOrchestrator] Resuming flow with clarification answer: "${clarificationAnswer}"`);
+      const result = await apiService.orchestrateRequest(clarificationAnswer, userLocation);
+      clearInterval(intervalId);
+      
+      if (result.status === 'clarification_needed') {
+        // Still needs more details
+        setClarificationMessage(result.message);
+        setMissingFields(result.missingFields || []);
+        setClarificationAnswer('');
+      } else {
+        setResponse(result);
+        setClarificationNeeded(false);
+        setClarificationMessage('');
+        setMissingFields([]);
+        setClarificationAnswer('');
+        setCurrentScreen('provider_list');
+      }
+    } catch (e) {
+      clearInterval(intervalId);
+      console.error(e);
+      setErrorMsg(e.message || 'Error occurred during clarification resume.');
     } finally {
       setLoading(false);
       setLoadingPhase('');
@@ -274,6 +351,14 @@ export const useOrchestrator = () => {
     response,
     errorMsg,
     handleExecute,
+
+    // Clarification state
+    clarificationNeeded,
+    clarificationMessage,
+    missingFields,
+    clarificationAnswer,
+    setClarificationAnswer,
+    handleSubmitClarification,
 
     // Provider details
     selectedDetail,

@@ -75,6 +75,14 @@ export default function App() {
           devMode={orchestrator.devMode}
           setDevMode={orchestrator.setDevMode}
           handleLogout={orchestrator.handleLogout}
+          
+          // Clarification
+          clarificationNeeded={orchestrator.clarificationNeeded}
+          clarificationMessage={orchestrator.clarificationMessage}
+          missingFields={orchestrator.missingFields}
+          clarificationAnswer={orchestrator.clarificationAnswer}
+          setClarificationAnswer={orchestrator.setClarificationAnswer}
+          handleSubmitClarification={orchestrator.handleSubmitClarification}
         />
       )}
 

@@ -16,7 +16,15 @@ export const HomeScreen = ({
   setIsDarkMode,
   devMode,
   setDevMode,
-  handleLogout
+  handleLogout,
+  
+  // Clarification
+  clarificationNeeded,
+  clarificationMessage,
+  missingFields,
+  clarificationAnswer,
+  setClarificationAnswer,
+  handleSubmitClarification
 }) => {
   const styles = useStyles(isDarkMode);
   const pulseAnim = useRef(new Animated.Value(0.4)).current;
@@ -166,32 +174,87 @@ export const HomeScreen = ({
           </Text>
         </View>
 
-        {/* Query Input Box */}
-        <View style={[styles.card, { marginTop: 12, padding: 12 }]}>
-          <TextInput
-            style={[styles.input, { marginBottom: 12 }]}
-            placeholder="e.g., Mujhe kal subah AC ki safai k liye banda chahiye..."
-            placeholderTextColor="#64748B"
-            value={query}
-            onChangeText={setQuery}
-            onSubmitEditing={handleExecute}
-            multiline={true}
-            numberOfLines={3}
-          />
-          <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center', marginBottom: 12 }}>
-            <Ionicons name="location-outline" size={18} color="#06B6D4" />
+        {/* Input Block: Conditionally Alternates Normal Search vs Clarification Resolution */}
+        {clarificationNeeded ? (
+          <View style={[styles.card, { marginTop: 12, padding: 16, borderColor: '#F59E0B', borderWidth: 1.5, shadowColor: '#F59E0B', shadowRadius: 10, shadowOpacity: 0.3, elevation: 6 }]}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+              <Ionicons name="help-circle" size={24} color="#F59E0B" />
+              <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#F59E0B' }}>Clarification Required</Text>
+            </View>
+            
+            <Text style={{ color: isDarkMode ? '#FFF' : '#0F172A', fontSize: 14, fontWeight: '600', marginBottom: 12, lineHeight: 20 }}>
+              {clarificationMessage}
+            </Text>
+
+            {/* List missing fields */}
+            {missingFields && missingFields.length > 0 && (
+              <View style={{ marginBottom: 16, backgroundColor: isDarkMode ? 'rgba(245, 158, 11, 0.08)' : '#FEF3C7', padding: 12, borderRadius: 12, borderLeftWidth: 3, borderLeftColor: '#F59E0B' }}>
+                <Text style={{ fontSize: 11, fontWeight: 'bold', color: '#F59E0B', marginBottom: 6, letterSpacing: 1 }}>MISSING PARAMETERS:</Text>
+                {missingFields.map((field, i) => (
+                  <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 }}>
+                    <Ionicons name="warning-outline" size={14} color="#F59E0B" />
+                    <Text style={{ color: isDarkMode ? '#E2E8F0' : '#475569', fontSize: 13, textTransform: 'capitalize', fontWeight: 'bold' }}>
+                      • {field.replace(/([A-Z])/g, ' $1')}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            )}
+
             <TextInput
-              style={[styles.input, { paddingVertical: 8 }]}
-              placeholder="Your Location..."
+              style={[styles.input, { marginBottom: 12, height: 50 }]}
+              placeholder="Provide the missing details (e.g. Subah 10 baje, Gulshan)..."
               placeholderTextColor="#64748B"
-              value={userLocation}
-              onChangeText={setUserLocation}
+              value={clarificationAnswer}
+              onChangeText={setClarificationAnswer}
+              onSubmitEditing={handleSubmitClarification}
             />
+
+            <View style={{ flexDirection: 'row', gap: 10 }}>
+              <TouchableOpacity 
+                style={[styles.primaryBtn, { flex: 1, backgroundColor: '#F59E0B' }]} 
+                onPress={handleSubmitClarification}
+              >
+                <Text style={{ color: '#FFF', fontWeight: 'bold' }}>SUBMIT CLARIFICATION</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.secondaryBtn, { borderColor: '#64748B' }]} 
+                onPress={() => {
+                  setQuery('');
+                  setClarificationAnswer('');
+                }}
+              >
+                <Text style={{ color: isDarkMode ? '#FFF' : '#0F172A' }}>Clear</Text>
+              </TouchableOpacity>
+            </View>
           </View>
-          <TouchableOpacity style={styles.primaryBtn} onPress={handleExecute} disabled={loading}>
-            <Text style={styles.primaryBtnText}>FIND BEST MATCHING PROVIDERS</Text>
-          </TouchableOpacity>
-        </View>
+        ) : (
+          <View style={[styles.card, { marginTop: 12, padding: 12 }]}>
+            <TextInput
+              style={[styles.input, { marginBottom: 12 }]}
+              placeholder="e.g., Mujhe kal subah AC ki safai k liye banda chahiye..."
+              placeholderTextColor="#64748B"
+              value={query}
+              onChangeText={setQuery}
+              onSubmitEditing={handleExecute}
+              multiline={true}
+              numberOfLines={3}
+            />
+            <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center', marginBottom: 12 }}>
+              <Ionicons name="location-outline" size={18} color="#06B6D4" />
+              <TextInput
+                style={[styles.input, { paddingVertical: 8 }]}
+                placeholder="Your Location..."
+                placeholderTextColor="#64748B"
+                value={userLocation}
+                onChangeText={setUserLocation}
+              />
+            </View>
+            <TouchableOpacity style={styles.primaryBtn} onPress={handleExecute} disabled={loading}>
+              <Text style={styles.primaryBtnText}>FIND BEST MATCHING PROVIDERS</Text>
+            </TouchableOpacity>
+          </View>
+        )}
 
         {/* Location Clustering Chip */}
         <View style={{ alignItems: 'center', marginVertical: 12 }}>

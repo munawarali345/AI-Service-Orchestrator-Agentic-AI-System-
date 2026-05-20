@@ -82,6 +82,15 @@ export const apiService = {
       }
 
       const state = raw.data;
+      if (state && state.status === 'clarification_needed') {
+        console.log('[API Service] Backend indicates clarification is needed!');
+        return {
+          status: 'clarification_needed',
+          message: state.message,
+          missingFields: state.missingFields || [],
+          logs: state.trace || []
+        };
+      }
       console.log('[API Service] Backend orchestration succeeded! Normalizing payload...');
 
       // Map backend resultState to front-end expected contract

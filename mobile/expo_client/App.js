@@ -68,6 +68,7 @@ export default function App() {
           userLocation={orchestrator.userLocation}
           setUserLocation={orchestrator.setUserLocation}
           loading={orchestrator.loading}
+          loadingPhase={orchestrator.loadingPhase}
           handleExecute={orchestrator.handleExecute}
           isDarkMode={orchestrator.isDarkMode}
           setIsDarkMode={orchestrator.setIsDarkMode}

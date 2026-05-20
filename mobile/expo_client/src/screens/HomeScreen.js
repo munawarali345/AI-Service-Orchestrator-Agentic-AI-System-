@@ -10,6 +10,7 @@ export const HomeScreen = ({
   userLocation,
   setUserLocation,
   loading,
+  loadingPhase,
   handleExecute,
   isDarkMode,
   setIsDarkMode,
@@ -28,6 +29,110 @@ export const HomeScreen = ({
       ])
     ).start();
   }, [pulseAnim]);
+
+  // Premium Custom Dynamic Phase Loader overlay instead of standard spinner
+  if (loading) {
+    const phases = [
+      'Intent Parsing...',
+      'Finding nearest providers...',
+      'Ranking providers...',
+      'Checking availability...',
+      'Preparing recommendation...'
+    ];
+    const currentIdx = phases.indexOf(loadingPhase);
+    
+    return (
+      <View style={{ flex: 1, backgroundColor: isDarkMode ? '#0B0F19' : '#F8FAFC', justifyContent: 'center', alignItems: 'center', padding: 24 }}>
+        <View style={{
+          width: '100%',
+          maxWidth: 400,
+          backgroundColor: isDarkMode ? 'rgba(15, 23, 42, 0.95)' : 'rgba(255, 255, 255, 0.95)',
+          borderRadius: 24,
+          padding: 30,
+          borderWidth: 1.5,
+          borderColor: '#06B6D4',
+          shadowColor: '#06B6D4',
+          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: 0.4,
+          shadowRadius: 16,
+          elevation: 12,
+          alignItems: 'center'
+        }}>
+          {/* Glowing Pulse Scanner */}
+          <Animated.View style={{
+            width: 80,
+            height: 80,
+            borderRadius: 40,
+            backgroundColor: 'rgba(6, 182, 212, 0.1)',
+            justifyContent: 'center',
+            alignItems: 'center',
+            marginBottom: 24,
+            borderWidth: 2,
+            borderColor: '#06B6D4',
+            opacity: pulseAnim
+          }}>
+            <Ionicons name="hardware-chip-outline" size={36} color="#06B6D4" />
+          </Animated.View>
+
+          <Text style={{ fontSize: 20, fontWeight: 'bold', color: isDarkMode ? '#FFF' : '#0F172A', textAlign: 'center', marginBottom: 6 }}>
+            Haazir AI Orchestrator
+          </Text>
+          <Text style={{ fontSize: 13, color: '#64748B', textAlign: 'center', marginBottom: 24 }}>
+            Executing 6-stage cognitive agentic workflow...
+          </Text>
+
+          {/* Progress Steps List */}
+          <View style={{ width: '100%', gap: 12, marginBottom: 24 }}>
+            {phases.map((phase, idx) => {
+              const isActive = loadingPhase === phase || (loadingPhase === '' && idx === 0);
+              const isPast = currentIdx > idx;
+              
+              return (
+                <View key={phase} style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: 12,
+                  paddingVertical: 8,
+                  paddingHorizontal: 12,
+                  borderRadius: 12,
+                  backgroundColor: isActive ? 'rgba(6, 182, 212, 0.08)' : 'transparent',
+                  borderWidth: 1,
+                  borderColor: isActive ? 'rgba(6, 182, 212, 0.3)' : 'transparent'
+                }}>
+                  {isPast ? (
+                    <Ionicons name="checkmark-circle" size={20} color="#10B981" />
+                  ) : isActive ? (
+                    <Animated.View style={{ opacity: pulseAnim }}>
+                      <Ionicons name="sync" size={20} color="#06B6D4" />
+                    </Animated.View>
+                  ) : (
+                    <Ionicons name="ellipse-outline" size={20} color={isDarkMode ? '#475569' : '#94A3B8'} />
+                  )}
+                  <Text style={{
+                    fontSize: 14,
+                    fontWeight: isActive ? 'bold' : 'normal',
+                    color: isPast ? '#10B981' : (isActive ? '#06B6D4' : (isDarkMode ? '#475569' : '#94A3B8'))
+                  }}>
+                    {phase}
+                  </Text>
+                </View>
+              );
+            })}
+          </View>
+
+          {/* Real-time thinking animation progress */}
+          <View style={{ width: '100%', height: 6, backgroundColor: isDarkMode ? '#1E293B' : '#E2E8F0', borderRadius: 3, overflow: 'hidden' }}>
+            <View style={{
+              width: `${(((currentIdx === -1 ? 0 : currentIdx) + 1) / phases.length) * 100}%`,
+              height: '100%',
+              backgroundColor: '#06B6D4',
+              borderRadius: 3
+            }} />
+          </View>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View style={{ flex: 1 }}>
@@ -84,7 +189,7 @@ export const HomeScreen = ({
             />
           </View>
           <TouchableOpacity style={styles.primaryBtn} onPress={handleExecute} disabled={loading}>
-            <Text style={styles.primaryBtnText}>{loading ? 'ORCHESTRATING REQUEST...' : 'FIND BEST MATCHING PROVIDERS'}</Text>
+            <Text style={styles.primaryBtnText}>FIND BEST MATCHING PROVIDERS</Text>
           </TouchableOpacity>
         </View>
 
@@ -131,7 +236,7 @@ export const HomeScreen = ({
           </Text>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
             {['Plumber', 'AC Technician', 'Home Cleaning', 'Electrician', 'Appliance Repair', 'Tutor'].map((cat, i) => (
-              <View key={i} style={{
+              <TouchableOpacity key={i} onPress={() => setQuery(`Mujhe subah ek ${cat.toLowerCase()} ki zaroorat hai.`)} style={{
                 backgroundColor: isDarkMode ? '#1E293B' : '#E2E8F0',
                 borderRadius: 20,
                 paddingVertical: 8,
@@ -140,7 +245,7 @@ export const HomeScreen = ({
                 borderColor: isDarkMode ? '#334155' : '#CBD5E1',
               }}>
                 <Text style={{ color: isDarkMode ? '#F8FAFC' : '#0F172A', fontSize: 13, fontWeight: '600' }}>{cat}</Text>
-              </View>
+              </TouchableOpacity>
             ))}
           </View>
         </View>

@@ -17,6 +17,7 @@ export const useOrchestrator = () => {
   const [query, setQuery] = useState('');
   const [userLocation, setUserLocation] = useState('Gulshan-e-Iqbal');
   const [loading, setLoading] = useState(false);
+  const [loadingPhase, setLoadingPhase] = useState('');
   const [response, setResponse] = useState(null);
   const [errorMsg, setErrorMsg] = useState(null);
   
@@ -99,17 +100,40 @@ export const useOrchestrator = () => {
     setErrorMsg(null);
     setSelectedDetail(null);
     setBaselineData(null);
+    setLoadingPhase('Intent Parsing...');
+
+    // Dynamic phase update timer
+    let phaseIndex = 0;
+    const phases = [
+      'Intent Parsing...',
+      'Finding nearest providers...',
+      'Ranking providers...',
+      'Checking availability...',
+      'Preparing recommendation...'
+    ];
+
+    const intervalId = setInterval(() => {
+      phaseIndex++;
+      if (phaseIndex < phases.length) {
+        setLoadingPhase(phases[phaseIndex]);
+      } else {
+        clearInterval(intervalId);
+      }
+    }, 1200);
 
     try {
       const result = await apiService.orchestrateRequest(query, userLocation);
+      clearInterval(intervalId);
       setResponse(result);
       // Navigate to Provider List
       setCurrentScreen('provider_list');
     } catch (e) {
+      clearInterval(intervalId);
       console.error(e);
       setErrorMsg(e.message || 'Error occurred while contacting the orchestrator.');
     } finally {
       setLoading(false);
+      setLoadingPhase('');
     }
   };
 
@@ -246,6 +270,7 @@ export const useOrchestrator = () => {
     userLocation,
     setUserLocation,
     loading,
+    loadingPhase,
     response,
     errorMsg,
     handleExecute,

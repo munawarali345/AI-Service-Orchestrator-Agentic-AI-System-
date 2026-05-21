@@ -149,10 +149,6 @@ export const HomeScreen = ({
         <Image source={require('../../assets/Hazir_logoD.png')} style={styles.headerLogo} />
         <View style={styles.headerControls}>
           <View style={styles.switchRow}>
-            <Text style={styles.switchLabel}>Dev</Text>
-            <Switch value={devMode} onValueChange={setDevMode} />
-          </View>
-          <View style={styles.switchRow}>
             <Text style={styles.switchLabel}>Dark</Text>
             <Switch value={isDarkMode} onValueChange={setIsDarkMode} />
           </View>

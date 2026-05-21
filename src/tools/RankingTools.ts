@@ -20,14 +20,14 @@ const KARACHI_AREAS_COORDINATES: Record<string, { lat: number; lng: number; full
     },
     "scheme 33": {
         fullName: "Scheme 33",
-        lat: 24.96,
+        lat: 24.95,
         lng: 67.14,
         synonyms: ["scheme 33", "scheme-33", "scheme33", "skeme 33"]
     },
     "safoora": {
         fullName: "Safoora",
         lat: 24.93,
-        lng: 67.16,
+        lng: 67.15,
         synonyms: ["safoora", "safoora goth", "safoora chowrangi"]
     },
     "gulzar-e-hijri": {
@@ -194,7 +194,7 @@ const parseTimeToDecimal = (timeStr: string): number => {
         if (match) {
             let hours = parseInt(match[1], 10);
             const minutes = parseInt(match[2], 10);
-            
+
             if (cleaned.includes("pm") && hours < 12) {
                 hours += 12;
             } else if (cleaned.includes("am") && hours === 12) {
@@ -279,7 +279,7 @@ export const evaluateAndScoreProvidersTool = tool(
 
         const scoredList = providers.map((p: any) => {
             const pid = p.id;
-            
+
             // -------------------------------------------------------------
             // FACTOR 1: Distance (20% Weight) - Dynamic Haversine Geodesics
             // -------------------------------------------------------------
@@ -295,7 +295,7 @@ export const evaluateAndScoreProvidersTool = tool(
             } else {
                 const latNum = Number(providerLat);
                 const lngNum = Number(providerLng);
-                
+
                 if (isNaN(latNum) || isNaN(lngNum)) {
                     console.warn(`[evaluateAndScoreProvidersTool] Warning: Missing provider coordinates for provider ID: ${pid} (${p.name})`);
                 } else {
@@ -317,7 +317,7 @@ export const evaluateAndScoreProvidersTool = tool(
             // -------------------------------------------------------------
             const providerSched = schedules.find((s: any) => s.providerId === pid);
             const rawSlots = providerSched?.slots || [];
-            
+
             // Filter only for available slots
             const availableSlots = rawSlots.filter((slot: any) => slot.status === "available" || slot.isAvailable);
 
@@ -397,11 +397,11 @@ export const evaluateAndScoreProvidersTool = tool(
 
                 const latestReview = sortedReviews[0];
                 const latestTime = getReviewTime(latestReview);
-                
+
                 if (latestTime > 0) {
                     const diffMs = Math.abs(Date.now() - latestTime);
                     const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
-                    
+
                     if (diffDays <= 30) recencyFactor = 1.0;
                     else if (diffDays <= 90) recencyFactor = 0.85;
                     else recencyFactor = 0.6;
@@ -444,13 +444,13 @@ export const evaluateAndScoreProvidersTool = tool(
             // -------------------------------------------------------------
             // FACTOR 7: Price Fit (Dynamic Engine Output)
             // -------------------------------------------------------------
-            
+
             const pricingDetails = calculateDynamicPrice(
                 pricingConfig,
                 distanceVal,
                 targetTime || "12:00",
                 intent?.urgency || "normal",
-                intent?.complexity || "standard",
+                intent?.complexity || "simple",
                 intent?.budget || null
             );
 
@@ -497,9 +497,9 @@ export const evaluateAndScoreProvidersTool = tool(
             const wRecency = 0.10;
             const wReliability = 0.10;
             const wSkill = 0.10;
-            const wPrice = 0.05;
+            const wPrice = 0.10;
             const wCancellation = 0.05;
-            const wWorkload = 0.05;
+            const wWorkload = 0.03;
 
             const totalWeight = Number((wDistance + wAvailability + wRating + wRecency + wReliability + wSkill + wPrice + wCancellation + wWorkload).toFixed(2));
             console.log("Total weight =", totalWeight);

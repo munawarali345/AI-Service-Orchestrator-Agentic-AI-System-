@@ -2,7 +2,7 @@ import { tool } from "@langchain/core/tools";
 import { z } from "zod";
 import { getProviderSchedules } from "./providerTool.js";
 import { getReviews } from "./reviewTool.js";
-import { getPricingConfig } from "./pricingTool.js";
+import { getPricingConfig, calculateDynamicPrice } from "./pricingTool.js";
 
 // Local Geocoding and Area Normalization Map for Karachi Seeded Areas
 const KARACHI_AREAS_COORDINATES: Record<string, { lat: number; lng: number; fullName: string; synonyms: string[] }> = {
@@ -260,7 +260,7 @@ const getNormalizedCategory = (rawStr: string): string => {
 
 // 4. Mathematical scoring engine tool implementing all 9 factors
 export const evaluateAndScoreProvidersTool = tool(
-    async ({ providers, schedules, reviews, pricingConfig, targetLocation, targetTime, targetDate, userLat, userLng }) => {
+    async ({ providers, schedules, reviews, pricingConfig, targetLocation, targetTime, targetDate, userLat, userLng, intent }) => {
         const targetDateISO = resolveTargetDateString(targetDate || "");
         const targetDec = targetTime ? parseTimeToDecimal(targetTime) : 12.0;
 
@@ -442,20 +442,29 @@ export const evaluateAndScoreProvidersTool = tool(
             }
 
             // -------------------------------------------------------------
-            // FACTOR 7: Price Fit (5% Weight)
+            // FACTOR 7: Price Fit (Dynamic Engine Output)
             // -------------------------------------------------------------
+            
+            const pricingDetails = calculateDynamicPrice(
+                pricingConfig,
+                distanceVal,
+                targetTime || "12:00",
+                intent?.urgency || "normal",
+                intent?.complexity || "standard",
+                intent?.budget || null
+            );
+
             let priceFitScore = 100;
-            let priceEvaluation = "Within standard budget";
+            let priceEvaluation = pricingDetails.budgetFit === "unknown" ? "Within standard budget" : pricingDetails.budgetFit;
 
-            const providerPriceRange = String(p.priceRange || "").toLowerCase();
-            const configPriceRef = pricingConfig?.referencePrice || "medium";
-
-            if (providerPriceRange === "premium" && configPriceRef !== "premium") {
+            // Optional logic: if over_budget, penalize
+            if (pricingDetails.budgetFit === "over_budget") {
                 priceFitScore = 60;
-                priceEvaluation = "Premium pricing";
+                priceEvaluation = "Exceeds requested budget";
+            } else if (pricingDetails.budgetFit === "under_budget") {
+                priceFitScore = 100; // Bonus score could be applied
+                priceEvaluation = "Highly affordable (Under budget)";
             }
-
-            // -------------------------------------------------------------
             // FACTOR 8: Cancellation Rate (5% Weight) - Normalized & Clamped
             // -------------------------------------------------------------
             let rawCancelRate = Number(p.cancellationRate);
@@ -538,14 +547,21 @@ export const evaluateAndScoreProvidersTool = tool(
                 provider: p,
                 score: finalScore,
                 computedDistance,
+                rawDistanceKm: distanceVal,
                 priceEvaluation,
+                pricingDetails,
                 matchedSlot,
                 alternativeSlots
             };
         });
 
-        // Sort from highest score to lowest
-        scoredList.sort((a, b) => b.score - a.score);
+        // Sort from highest score to lowest. If scores tie, sort by nearest distance.
+        scoredList.sort((a, b) => {
+            if (b.score !== a.score) {
+                return b.score - a.score;
+            }
+            return a.rawDistanceKm - b.rawDistanceKm;
+        });
 
         return JSON.stringify(scoredList);
     },
@@ -561,7 +577,8 @@ export const evaluateAndScoreProvidersTool = tool(
             targetTime: z.string().optional().describe("User's preferred booking time window (e.g. 'morning')."),
             targetDate: z.string().optional().describe("User's preferred booking date relative or absolute (e.g. 'tomorrow')."),
             userLat: z.number().optional().describe("User's latitude coordinate."),
-            userLng: z.number().optional().describe("User's longitude coordinate.")
+            userLng: z.number().optional().describe("User's longitude coordinate."),
+            intent: z.any().optional().describe("Full intent object containing budget, urgency, etc.")
         }),
     }
 );

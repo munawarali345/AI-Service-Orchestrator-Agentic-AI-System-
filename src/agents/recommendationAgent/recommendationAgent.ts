@@ -67,9 +67,9 @@ OUTPUT FORMAT (STRICT JSON ONLY):
     "id": "",
     "name": "",
     "area": "",
-    "distance": "",
-    "computedDistance": "",
+    "distance": "<Map the 'computedDistance' field from Ranking Agent exactly here>",
     "priceEvaluation": "",
+    "pricingDetails": "<Map the 'pricingDetails' object from Ranking Agent exactly here>",
     "rating": "",
     "reason": "",
     "matchedSlot": {
@@ -83,8 +83,9 @@ OUTPUT FORMAT (STRICT JSON ONLY):
       "id": "",
       "name": "",
       "area": "",
-      "computedDistance": "",
+      "distance": "<Map the 'computedDistance' field from Ranking Agent exactly here>",
       "priceEvaluation": "",
+      "pricingDetails": "<Map the 'pricingDetails' object from Ranking Agent exactly here>",
       "reason": "",
       "matchedSlot": {
         "slotId": "",

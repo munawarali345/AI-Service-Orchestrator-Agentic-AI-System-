@@ -8,7 +8,7 @@ export const mergeIntentAgent = async (previousIntent: any, missingFields: strin
             User's new reply: "${newUserInput}"
             
             Merge the user's reply into the missing fields of the previous intent.
-            Return ONLY the completed JSON object with keys: service, location, time.
+            Return ONLY the completed JSON object with keys: service, location, targetDate, targetTimeWindow, language, budget, and urgency.
         `;
         
         const completion = await client.chat.completions.create({

@@ -33,6 +33,11 @@ Extract exactly these fields from the user input:
 3. targetDate: The requested date relative to today ("today", "tomorrow", "+2 days", "next day"). Return null if missing.
 4. targetTimeWindow: The preferred time window of the day ("morning", "noon", "evening", "night", "urgent"). Return null if missing.
 5. language: The language used by the user ("English", "Urdu Script", "Roman Urdu").
+6. budget: The optional budget provided by the user. If present, extract as an object { min: number, max: number }. E.g., if "2000-3000", min:2000, max:3000. If "2500", min:2500, max:2500. Return null if missing. Budget is completely OPTIONAL.
+7. urgency: Determine urgency level exactly as follows:
+    - "emergency" if keywords: right now, immediately, emergency, asap, urgent today, jaldi, abhi, foran.
+    - "urgent" if keywords: urgent, quick, today, same day, jaldi chahiye.
+    - "normal" if otherwise (no specific urgency mentioned or tomorrow/future booking).
 
 IMPORTANT RULES:
 - NEVER guess missing information.
@@ -40,7 +45,7 @@ IMPORTANT RULES:
 - If ANY of the 4 core fields (service, location, targetDate, targetTimeWindow) are missing or unclear:
   - set isClear = false
   - generate a polite clarification question IN THE EXACT SAME LANGUAGE (detected language) asking for the specific missing details.
-- If ALL 4 fields are clearly understood:
+- If ALL 4 core fields are clearly understood (budget is optional):
   - set isClear = true
   - clarificationQuestion must be null.
 
@@ -56,6 +61,40 @@ Output:
   "targetDate": "tomorrow",
   "targetTimeWindow": "morning",
   "language": "Roman Urdu",
+  "budget": null,
+  "urgency": "normal",
+  "isClear": true,
+  "clarificationQuestion": null
+}
+
+Input:
+"Plumber chahiye kal morning budget 2000-3000"
+
+Output:
+{
+  "service": "plumbing",
+  "location": null,
+  "targetDate": "tomorrow",
+  "targetTimeWindow": "morning",
+  "language": "Roman Urdu",
+  "budget": { "min": 2000, "max": 3000 },
+  "urgency": "normal",
+  "isClear": false,
+  "clarificationQuestion": "Please provide the area/location where you need the plumber."
+}
+
+Input:
+"Need plumber right now in Gulshan emergency"
+
+Output:
+{
+  "service": "plumbing",
+  "location": "Gulshan",
+  "targetDate": "today",
+  "targetTimeWindow": "urgent",
+  "language": "English",
+  "budget": null,
+  "urgency": "emergency",
   "isClear": true,
   "clarificationQuestion": null
 }
@@ -70,6 +109,8 @@ Output:
   "targetDate": "today",
   "targetTimeWindow": "morning",
   "language": "Roman Urdu",
+  "budget": null,
+  "urgency": "normal",
   "isClear": false,
   "clarificationQuestion": "Theek hai, main electrician bhej deta hoon. Lakin kis area/location mein bhejna hai? Aur kis din (aaj ya kal)?"
 }
@@ -124,6 +165,8 @@ user request:
                 targetDate: result.targetDate,
                 targetTimeWindow: result.targetTimeWindow,
                 language: result.language || 'English',
+                budget: result.budget || null,
+                urgency: result.urgency || 'normal',
                 date: result.targetDate, // Backward-compatibility
                 time: result.targetTimeWindow // Backward-compatibility
             },
@@ -135,6 +178,8 @@ user request:
                 targetDate: result.targetDate,
                 targetTimeWindow: result.targetTimeWindow,
                 language: result.language || 'English',
+                budget: result.budget || null,
+                urgency: result.urgency || 'normal',
                 date: result.targetDate,
                 time: result.targetTimeWindow
             } : null,

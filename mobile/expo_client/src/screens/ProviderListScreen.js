@@ -48,100 +48,190 @@ export const ProviderListScreen = ({
       </View>
 
       <ScrollView style={styles.mainScroll} contentContainerStyle={styles.scrollContent}>
-        {/* Step-by-Step logs summary */}
+        {/* Booking Confirmation Message from AI */}
         <View style={[styles.card, { borderColor: '#10B981', borderStyle: 'dashed' }]}>
-          <Text style={{ color: '#10B981', fontWeight: 'bold', fontSize: 14, marginBottom: 4 }}>🎉 Orchestrator Success</Text>
-          <Text style={{ color: isDarkMode ? '#FFF' : '#334155', fontSize: 13 }}>
-            Evaluated 10 active service providers using our geodesic Haversine distance model.
+          <Text style={{ color: '#10B981', fontWeight: 'bold', fontSize: 14, marginBottom: 4 }}>🎉 Booking Confirmed</Text>
+          <Text style={{ color: isDarkMode ? '#FFF' : '#334155', fontSize: 13, lineHeight: 20 }}>
+            {response?.recommendation?.userMessage || 'Aapki request process ho gayi hai.'}
           </Text>
         </View>
 
         {/* Primary Best Match Recommendation */}
         {bestMatch && (
           <View style={{ marginBottom: 10 }}>
-            <Text style={styles.sectionTitle}>🏆 AI Primary Match Recommendation</Text>
-            <TouchableOpacity 
+            <Text style={styles.sectionTitle}>🏆 AI Best Match</Text>
+            <TouchableOpacity
               style={[styles.card, { borderColor: '#10B981', borderWidth: 2, shadowColor: '#10B981', shadowOpacity: 0.15, shadowRadius: 10 }]}
               onPress={() => handleSelectProvider(bestMatch)}
             >
+              {/* Name + Badge */}
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Text style={{ color: isDarkMode ? '#FFF' : '#0F172A', fontSize: 18, fontWeight: 'bold' }}>{bestMatch.name}</Text>
+                <Text style={{ color: isDarkMode ? '#FFF' : '#0F172A', fontSize: 17, fontWeight: 'bold', flex: 1 }}>
+                  {bestMatch.name || response?.recommendation?.recommendedProvider?.name}
+                </Text>
                 <View style={{ backgroundColor: '#10B981', paddingVertical: 2, paddingHorizontal: 8, borderRadius: 4 }}>
                   <Text style={{ color: '#0F172A', fontWeight: 'bold', fontSize: 11 }}>BEST MATCH</Text>
                 </View>
               </View>
 
-              <Text style={[styles.cardText, { marginTop: 6 }]}>Category: {bestMatch.serviceCategories?.join(', ')}</Text>
-              
-              <View style={{ flexDirection: 'row', gap: 12, marginVertical: 6 }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
-                  <Ionicons name="star" size={14} color="#FDE047" />
-                  <Text style={{ color: isDarkMode ? '#FFF' : '#0F172A', fontSize: 13, fontWeight: 'bold' }}>{bestMatch.rating}/5.0</Text>
+              {/* Category */}
+              <Text style={[styles.cardText, { marginTop: 4 }]}>
+                {bestMatch.serviceCategories?.join(', ') || response?.recommendation?.recommendedProvider?.area}
+              </Text>
+
+              {/* Stats Row */}
+              <View style={{ flexDirection: 'row', gap: 12, marginTop: 8, flexWrap: 'wrap' }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+                  <Ionicons name="star" size={13} color="#FDE047" />
+                  <Text style={{ color: isDarkMode ? '#FFF' : '#0F172A', fontSize: 13, fontWeight: 'bold' }}>
+                    {bestMatch.rating || response?.recommendation?.recommendedProvider?.rating}/5.0
+                  </Text>
                 </View>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
-                  <Ionicons name="git-network-outline" size={14} color="#06B6D4" />
-                  <Text style={{ color: isDarkMode ? '#FFF' : '#0F172A', fontSize: 13, fontWeight: 'bold' }}>Reliability: {bestMatch.reliabilityScore}%</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+                  <Ionicons name="podium-outline" size={13} color="#A78BFA" />
+                  <Text style={{ color: isDarkMode ? '#FFF' : '#0F172A', fontSize: 13 }}>
+                    Score: {bestMatch.score ?? '—'}
+                  </Text>
                 </View>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
-                  <Ionicons name="navigate-outline" size={14} color="#F59E0B" />
-                  <Text style={{ color: isDarkMode ? '#FFF' : '#0F172A', fontSize: 13 }}>Proximity: {bestMatch.location?.area}</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+                  <Ionicons name="git-network-outline" size={13} color="#06B6D4" />
+                  <Text style={{ color: isDarkMode ? '#FFF' : '#0F172A', fontSize: 13 }}>
+                    {bestMatch.reliabilityScore}% Reliable
+                  </Text>
+                </View>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+                  <Ionicons name="navigate-outline" size={13} color="#F59E0B" />
+                  <Text style={{ color: isDarkMode ? '#FFF' : '#0F172A', fontSize: 13 }}>
+                    {bestMatch.computedDistance || response?.recommendation?.recommendedProvider?.distance || 'N/A'}
+                  </Text>
                 </View>
               </View>
 
-              <View style={{ backgroundColor: isDarkMode ? 'rgba(16, 185, 129, 0.08)' : '#ECFDF5', padding: 10, borderRadius: 6, marginTop: 8 }}>
-                <Text style={{ color: '#10B981', fontSize: 13, fontStyle: 'italic', lineHeight: 18 }}>
-                  💬 {response?.recommendation?.recommendedProvider?.reason || response?.recommendation?.userMessage || `Geodesic coordinate clustering shows this provider is closest to your location (${bestMatch.distance || 'approx 4.2 km'}) with an active availability slot matching your request!`}
+              {/* Price Breakdown */}
+              {(bestMatch.pricingDetails || response?.recommendation?.recommendedProvider?.pricingDetails) && (
+                <View style={{ backgroundColor: isDarkMode ? 'rgba(16,185,129,0.06)' : '#F0FDF4', borderRadius: 6, padding: 8, marginTop: 8 }}>
+                  <Text style={{ color: '#10B981', fontWeight: 'bold', fontSize: 12, marginBottom: 4 }}>💰 Price Breakdown</Text>
+                  {(() => {
+                    const pd = bestMatch.pricingDetails || response?.recommendation?.recommendedProvider?.pricingDetails;
+                    return (
+                      <View style={{ gap: 2 }}>
+                        <Text style={{ color: isDarkMode ? '#CBD5E1' : '#475569', fontSize: 12 }}>Base: PKR {pd?.basePrice ?? '—'}</Text>
+                        {pd?.distanceCost > 0 && <Text style={{ color: isDarkMode ? '#CBD5E1' : '#475569', fontSize: 12 }}>Distance: +PKR {pd.distanceCost}</Text>}
+                        {pd?.urgencyCost > 0 && <Text style={{ color: '#F59E0B', fontSize: 12 }}>Urgency: +PKR {pd.urgencyCost}</Text>}
+                        {pd?.peakCost > 0 && <Text style={{ color: '#EF4444', fontSize: 12 }}>Peak Hour: +PKR {pd.peakCost}</Text>}
+                        <Text style={{ color: '#10B981', fontWeight: 'bold', fontSize: 13, marginTop: 4 }}>Total: PKR {pd?.totalPrice ?? '—'}</Text>
+                      </View>
+                    );
+                  })()}
+                </View>
+              )}
+
+              {/* Matched Slot */}
+              {(bestMatch.matchedSlot || response?.recommendation?.recommendedProvider?.matchedSlot) && (
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8 }}>
+                  <Ionicons name="calendar-outline" size={13} color="#06B6D4" />
+                  <Text style={{ color: '#06B6D4', fontSize: 13, fontWeight: 'bold' }}>
+                    {(bestMatch.matchedSlot || response?.recommendation?.recommendedProvider?.matchedSlot)?.date}
+                    {'  '}
+                    {(bestMatch.matchedSlot || response?.recommendation?.recommendedProvider?.matchedSlot)?.timeSlot}
+                  </Text>
+                </View>
+              )}
+
+              {/* Why Selected */}
+              <View style={{ backgroundColor: isDarkMode ? 'rgba(16, 185, 129, 0.08)' : '#ECFDF5', padding: 10, borderRadius: 6, marginTop: 10 }}>
+                <Text style={{ color: '#10B981', fontWeight: 'bold', fontSize: 12, marginBottom: 3 }}>✅ Why Selected:</Text>
+                <Text style={{ color: '#10B981', fontSize: 12, fontStyle: 'italic', lineHeight: 18 }}>
+                  {response?.recommendation?.recommendedProvider?.reason || 'Highest overall score among all evaluated candidates.'}
                 </Text>
               </View>
 
               <Text style={{ color: '#06B6D4', fontWeight: 'bold', fontSize: 13, marginTop: 12, textAlign: 'right' }}>
-                View Availability & Schedule →
+                Tap to Book & View Full Details →
               </Text>
             </TouchableOpacity>
           </View>
         )}
 
-        {/* Alternative Candidate Matches */}
-        {alternatives.length > 0 && (
+        {/* Alternative Candidate Matches — Info Only, Not Clickable */}
+        {(response?.recommendation?.alternatives || []).length > 0 && (
           <View>
-            <Text style={styles.sectionTitle}>⚖️ Evaluated Alternative Candidates</Text>
-            {alternatives.map((alt, index) => (
-              <TouchableOpacity 
-                key={index} 
-                style={styles.card}
-                onPress={() => handleSelectProvider(alt)}
+            <Text style={styles.sectionTitle}>⚖️ Alternative Candidates</Text>
+            {(response?.recommendation?.alternatives || []).map((alt, index) => (
+              <View
+                key={index}
+                style={[styles.card, { borderLeftWidth: 3, borderLeftColor: '#F59E0B' }]}
               >
+                {/* Name + Price */}
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <Text style={{ color: isDarkMode ? '#FFF' : '#0F172A', fontSize: 16, fontWeight: 'bold' }}>{alt.name}</Text>
-                  <Text style={{ color: '#F59E0B', fontWeight: 'bold', fontSize: 13 }}>PKR {alt.priceRange?.min || '1,500'}</Text>
+                  <Text style={{ color: isDarkMode ? '#FFF' : '#0F172A', fontSize: 15, fontWeight: 'bold', flex: 1 }}>
+                    {alt.name}
+                  </Text>
+                  <View style={{ backgroundColor: isDarkMode ? 'rgba(245,158,11,0.15)' : '#FEF3C7', paddingVertical: 2, paddingHorizontal: 8, borderRadius: 4 }}>
+                    <Text style={{ color: '#F59E0B', fontWeight: 'bold', fontSize: 12 }}>
+                      PKR {alt.pricingDetails?.totalPrice || '—'}
+                    </Text>
+                  </View>
                 </View>
-                <Text style={[styles.cardText, { marginTop: 4 }]}>Proximity Area: {alt.location?.area || 'Karachi'}</Text>
-                <View style={{ flexDirection: 'row', gap: 12, marginTop: 6 }}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
+
+                {/* Area + Distance + Peak */}
+                <View style={{ flexDirection: 'row', gap: 12, marginTop: 6, flexWrap: 'wrap' }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+                    <Ionicons name="location-outline" size={12} color="#94A3B8" />
+                    <Text style={{ color: isDarkMode ? '#CBD5E1' : '#64748B', fontSize: 12 }}>{alt.area}</Text>
+                  </View>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+                    <Ionicons name="navigate-outline" size={12} color="#F59E0B" />
+                    <Text style={{ color: isDarkMode ? '#CBD5E1' : '#64748B', fontSize: 12 }}>{alt.distance || 'N/A'}</Text>
+                  </View>
+                  {alt.pricingDetails?.peakCost > 0 && (
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+                      <Ionicons name="time-outline" size={12} color="#EF4444" />
+                      <Text style={{ color: '#EF4444', fontSize: 12 }}>Peak Hour</Text>
+                    </View>
+                  )}
+                </View>
+
+                {/* Rating + Score + Budget Fit */}
+                <View style={{ flexDirection: 'row', gap: 14, marginTop: 6, flexWrap: 'wrap' }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
                     <Ionicons name="star" size={12} color="#FDE047" />
-                    <Text style={{ color: isDarkMode ? '#FFF' : '#0F172A', fontSize: 12 }}>{alt.rating}/5.0</Text>
+                    <Text style={{ color: isDarkMode ? '#FFF' : '#0F172A', fontSize: 12 }}>{alt.rating || '—'}/5.0</Text>
                   </View>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
-                    <Ionicons name="shuffle-outline" size={12} color="#06B6D4" />
-                    <Text style={{ color: isDarkMode ? '#FFF' : '#0F172A', fontSize: 12 }}>{alt.distance || '3.5 km away'}</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+                    <Ionicons name="podium-outline" size={12} color="#A78BFA" />
+                    <Text style={{ color: isDarkMode ? '#CBD5E1' : '#64748B', fontSize: 12 }}>Score: {alt.score ?? '—'}</Text>
+                  </View>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+                    <Ionicons name="wallet-outline" size={12} color="#10B981" />
+                    <Text style={{ color: isDarkMode ? '#CBD5E1' : '#64748B', fontSize: 12 }}>{alt.priceEvaluation || '—'}</Text>
                   </View>
                 </View>
-              </TouchableOpacity>
+
+                {/* Matched Slot */}
+                {alt.matchedSlot && (
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 6 }}>
+                    <Ionicons name="calendar-outline" size={12} color="#06B6D4" />
+                    <Text style={{ color: '#06B6D4', fontSize: 12 }}>
+                      {alt.matchedSlot.date}  {alt.matchedSlot.timeSlot}
+                    </Text>
+                  </View>
+                )}
+
+                {/* AI Reason */}
+                {alt.reason && (
+                  <View style={{ backgroundColor: isDarkMode ? 'rgba(245,158,11,0.08)' : '#FFFBEB', padding: 8, borderRadius: 6, marginTop: 8 }}>
+                    <Text style={{ color: '#F59E0B', fontSize: 12, fontStyle: 'italic', lineHeight: 17 }}>
+                      💬 {alt.reason}
+                    </Text>
+                  </View>
+                )}
+              </View>
             ))}
           </View>
         )}
 
-        {/* Navigation Quick buttons */}
-        <View style={{ flexDirection: 'row', gap: 10, marginTop: 10 }}>
-          {devMode && (
-            <TouchableOpacity 
-              style={[styles.secondaryBtn, { flex: 1, backgroundColor: isDarkMode ? '#1E293B' : '#E2E8F0', borderWidth: 1, borderColor: '#06B6D4' }]} 
-              onPress={() => setCurrentScreen('agent_trace')}
-            >
-              <Text style={{ color: '#06B6D4', fontWeight: 'bold' }}>VIEW AGENT REASONING</Text>
-            </TouchableOpacity>
-          )}
-        </View>
+        
       </ScrollView>
     </View>
   );
